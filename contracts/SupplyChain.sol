@@ -9,14 +9,16 @@ pragma solidity ^0.5.0;
 contract SupplyChain {
 
   /* set owner */
-  address owner;
+  address public owner;
 
   /* Add a variable called skuCount to track the most recent sku # */
+  uint public skuCount;
 
   /* Add a line that creates a public mapping that maps the SKU (a number) to an Item.
      Call this mappings items
   */
-
+  mapping (uint => Item) items;
+  
   /* Add a line that creates an enum called State. This should have 4 states
     ForSale
     Sold
@@ -24,18 +26,31 @@ contract SupplyChain {
     Received
     (declaring them in this order is important for testing)
   */
-
+  enum State {ForSale, Sold, Shipped, Received}
+  
   /* Create a struct named Item.
     Here, add a name, sku, price, state, seller, and buyer
     We've left you to figure out what the appropriate types are,
     if you need help you can ask around :)
     Be sure to add "payable" to addresses that will be handling value transfer
   */
-
+  struct Item {
+      string name;
+      uint sku;
+      uint price;
+      State state;
+      address payable seller;
+      address payable buyer;
+  }
+  
   /* Create 4 events with the same name as each possible State (see above)
     Prefix each event with "Log" for clarity, so the forSale event will be called "LogForSale"
     Each event should accept one argument, the sku */
-
+    event LogForSale(uint sku);
+    event LogSold(uint sku);
+    event LogShipped(uint sku);
+    event LogReceived(uint sku);
+    
 /* Create a modifer that checks if the msg.sender is the owner of the contract */
 
   modifier verifyCaller (address _address) { require (msg.sender == _address); _;}
@@ -56,15 +71,31 @@ contract SupplyChain {
    so checking that Item.State == ForSale is not sufficient to check that an Item is for sale.
    Hint: What item properties will be non-zero when an Item has been added?
    */
-  modifier forSale
-  modifier sold
-  modifier shipped
-  modifier received
-
+  modifier forSale(uint _sku) {
+      require (items[_sku].state == State.ForSale && items[_sku].price > 0);
+      _;
+  }
+  
+  modifier sold(uint _sku) {
+      require (items[_sku].state == State.Sold);
+      _;
+  }
+  
+  modifier shipped(uint _sku) {
+      require (items[_sku].state == State.Shipped);
+      _;
+  }
+  
+  modifier received(uint _sku) {
+      require (items[_sku].state == State.Received);
+      _;
+  }
 
   constructor() public {
     /* Here, set the owner as the person who instantiated the contract
        and set your skuCount to 0. */
+       skuCount = 0;
+       owner = msg.sender;
   }
 
   function addItem(string memory _name, uint _price) public returns(bool){
@@ -81,20 +112,32 @@ contract SupplyChain {
     refunded any excess ether sent. Remember to call the event associated with this function!*/
 
   function buyItem(uint sku)
-    public
-  {}
+    public payable forSale(sku) paidEnough(items[sku].price) checkValue(sku)
+  {
+    items[sku].seller.transfer(items[sku].price);
+    items[sku].buyer = msg.sender;
+    items[sku].state = State.Sold;
+      
+    emit LogSold(sku);
+  }
 
   /* Add 2 modifiers to check if the item is sold already, and that the person calling this function
   is the seller. Change the state of the item to shipped. Remember to call the event associated with this function!*/
   function shipItem(uint sku)
-    public
-  {}
+    public sold(sku) verifyCaller(items[sku].seller)
+  {
+      items[sku].state = State.Shipped;
+      emit LogShipped(sku);
+  }
 
   /* Add 2 modifiers to check if the item is shipped already, and that the person calling this function
   is the buyer. Change the state of the item to received. Remember to call the event associated with this function!*/
   function receiveItem(uint sku)
-    public
-  {}
+    public shipped(sku) verifyCaller(items[sku].buyer)
+  {
+      items[sku].state = State.Received;
+      emit LogReceived(sku);
+  }
 
   /* We have these functions completed so we can run tests, just ignore it :) */
   function fetchItem(uint _sku) public view returns (string memory name, uint sku, uint price, uint state, address seller, address buyer) {
