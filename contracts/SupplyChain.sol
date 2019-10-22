@@ -53,6 +53,8 @@ contract SupplyChain {
     
 /* Create a modifer that checks if the msg.sender is the owner of the contract */
 
+//FEEDBACK: where is the modifier which checks for the owner?
+
   modifier verifyCaller (address _address) { require (msg.sender == _address); _;}
 
   modifier paidEnough(uint _price) { require(msg.value >= _price); _;}
@@ -61,7 +63,7 @@ contract SupplyChain {
     _;
     uint _price = items[_sku].price;
     uint amountToRefund = msg.value - _price;
-    items[_sku].buyer.transfer(amountToRefund);
+    items[_sku].buyer.transfer(amountToRefund); //FEEDBACK: What if amountToRefund is 0?
   }
 
   /* For each of the following modifiers, use what you learned about modifiers
@@ -72,7 +74,7 @@ contract SupplyChain {
    Hint: What item properties will be non-zero when an Item has been added?
    */
   modifier forSale(uint _sku) {
-      require (items[_sku].state == State.ForSale && items[_sku].price > 0);
+      require (items[_sku].state == State.ForSale && items[_sku].price > 0); //FEEDBACK: can an item price be 0?
       _;
   }
   
@@ -114,7 +116,7 @@ contract SupplyChain {
   function buyItem(uint sku)
     public payable forSale(sku) paidEnough(items[sku].price) checkValue(sku)
   {
-    items[sku].seller.transfer(items[sku].price);
+    items[sku].seller.transfer(items[sku].price); //FEEDBACK: Process transfer after all state changes to avoid reentrancy
     items[sku].buyer = msg.sender;
     items[sku].state = State.Sold;
       
