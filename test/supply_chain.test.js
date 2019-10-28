@@ -91,7 +91,7 @@ contract('SupplyChain', function(accounts) {
 
     it("should revert when someone that is not the seller tries to call shipItem()", async()=>{
         await instance.addItem(name, price, {from: alice})
-        await instance.buyItem(0, {from: bob, value: price})
+        await instance.buyItem(0, {from: bob, value: excessAmount})
         await catchRevert(instance.shipItem(0, {from: bob}))
     })
 
